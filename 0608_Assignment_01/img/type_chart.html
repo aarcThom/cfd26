@@ -1,0 +1,84 @@
+
+<style>
+.tc-wrap { padding: 1rem 0; overflow-x: auto; }
+.tc-table { border-collapse: collapse; font-size: 11px; }
+.tc-table th, .tc-table td { width: 36px; height: 36px; text-align: center; vertical-align: middle; border: 0.5px solid var(--color-border-tertiary); }
+.tc-table thead th { font-weight: 500; font-size: 10px; color: var(--color-text-secondary); writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); height: 80px; width: 36px; padding: 4px 2px; }
+.tc-table thead th.corner { writing-mode: horizontal-tb; transform: none; height: 80px; }
+.tc-table tbody th { font-weight: 500; font-size: 10px; color: var(--color-text-secondary); text-align: right; padding-right: 6px; white-space: nowrap; width: auto; min-width: 64px; }
+.cell-2 { background: #2d7a2d; color: #fff; font-weight: 500; }
+.cell-0 { background: #555; color: #aaa; }
+.cell-half { background: #7a2d2d; color: #fff; font-weight: 500; }
+.cell-1 { background: transparent; color: var(--color-text-tertiary); }
+.legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--color-text-secondary); flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 2px; }
+.changes { margin-top: 16px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.8; }
+.atk-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; }
+</style>
+<div class="tc-wrap">
+<p class="atk-label">Attacking type (row) vs. Defending type (column)</p>
+<table class="tc-table" role="img" aria-label="Balanced Gen 1 Pokémon type effectiveness chart">
+<thead>
+<tr>
+  <th class="corner"></th>
+  <th>Normal</th><th>Fire</th><th>Water</th><th>Grass</th><th>Electric</th>
+  <th>Ice</th><th>Psychic</th><th>Fighting</th><th>Poison</th><th>Ground</th>
+  <th>Flying</th><th>Rock</th><th>Bug</th><th>Ghost</th><th>Dragon</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch cell-2"></div>2× super effective</div>
+  <div class="legend-item"><div class="legend-swatch cell-half"></div>½× not very effective</div>
+  <div class="legend-item"><div class="legend-swatch cell-0"></div>0× no effect</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary)"></div>1× normal</div>
+</div>
+</div>
+<script>
+const types = ['Normal','Fire','Water','Grass','Electric','Ice','Psychic','Fighting','Poison','Ground','Flying','Rock','Bug','Ghost','Dragon'];
+
+const chart = {
+//               Nor  Fir  Wat  Gra  Ele  Ice  Psy  Fgt  Poi  Gnd  Fly  Roc  Bug  Gho  Dra
+  Normal:   [    1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,  .5,   1,   0,   1  ],
+  Fire:     [    1,  .5,  .5,   2,   1,   2,   1,   1,   1,   1,   1,  .5,   2,   1,  .5  ],
+  Water:    [    1,   2,  .5,  .5,   1,   1,   1,   1,   1,   2,   1,   2,   1,   1,  .5  ],
+  Grass:    [    1,  .5,   2,  .5,   1,   1,   1,   1,  .5,   2,  .5,   2,  .5,   1,  .5  ],
+  Electric: [    1,   1,   2,  .5,  .5,   1,   1,   1,   1,   0,   2,   1,   1,   1,  .5  ],
+  Ice:      [    1,  .5,  .5,   2,   1,  .5,   1,   1,   1,   2,   2,   1,   1,   1,   2  ],
+  // Psychic: now resisted by Psychic itself, and Ghost is fixed to 2x
+  Psychic:  [    1,   1,   1,   1,   1,   1,  .5,   2,   2,   1,   1,   1,   1,   2,   1  ],
+  // Fighting: Ghost immunity removed (Fighting can hit Ghost for 1x)
+  Fighting: [    2,   1,   1,   1,   1,   2,  .5,   1,  .5,   1,  .5,   2,  .5,   1,   1  ],
+  // Poison: now 2x vs Fairy-equivalent (Ghost here) and less resisted
+  Poison:   [    1,   1,   1,   2,   1,   1,   1,   1,  .5,  .5,   1,  .5,   1,   1,   1  ],
+  Ground:   [    1,   2,   1,  .5,   2,   1,   1,   1,   2,   1,   0,   2,   1,   1,   1  ],
+  Flying:   [    1,   1,   1,   2,  .5,   1,   1,   2,   1,   1,   1,  .5,   2,   1,   1  ],
+  Rock:     [    1,   2,   1,   1,   1,   2,   1,  .5,   1,  .5,   2,   1,   2,   1,   1  ],
+  // Bug: buffed vs Psychic and Poison, less resisted
+  Bug:      [    1,  .5,   1,   2,   1,   1,   2,  .5,   1,   1,  .5,   1,   1,  .5,   1  ],
+  // Ghost: fixed — now hits Normal for ½ instead of 0, and Psychic for 2x
+  Ghost:    [   .5,   1,   1,   1,   1,   1,   2,   1,   1,   1,   1,   1,   1,   2,   1  ],
+  // Dragon: now takes 2x from Ice and Dragon, but gains 2x vs Dragon offensively
+  Dragon:   [    1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2  ],
+};
+
+const tbody = document.getElementById('tbody');
+types.forEach(atk => {
+  const tr = document.createElement('tr');
+  const th = document.createElement('th');
+  th.textContent = atk;
+  tr.appendChild(th);
+  const row = chart[atk];
+  row.forEach(val => {
+    const td = document.createElement('td');
+    if (val === 2)    { td.className = 'cell-2'; td.textContent = '2×'; }
+    else if (val === 0)    { td.className = 'cell-0'; td.textContent = '0'; }
+    else if (val === 0.5)  { td.className = 'cell-half'; td.textContent = '½'; }
+    else { td.className = 'cell-1'; td.textContent = ''; }
+    tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+});
+</script>
